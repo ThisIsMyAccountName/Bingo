@@ -1,20 +1,23 @@
 import random
+import os
 import tkinter as tk
 from tkinter import messagebox
 
 root = tk.Tk()
 root.title("Bingo Game")
 
-numbers = []
 cell_size = 60
 board_size = 90
 
-def find_missing_numbers(numbers):
-    missing_numbers = []
-    for number in range(1, board_size+1):
-        if number not in numbers:
-            missing_numbers.append(number)
-    return missing_numbers
+numbers = []
+missing_numbers = []
+bingo_board = []
+file_path = 'bingo_game_state.txt'  # Specify the file name to look for in the program's directory
+
+def find_missing_numbers(numbers):  
+    global missing_numbers
+    missing_numbers = [i for i in range(1, board_size + 1) if i not in numbers]
+
 
 def generate_bingo_board(max_num):
     board = [[' ' for _ in range(5)] for _ in range(5)]
@@ -38,8 +41,7 @@ def on_number_entry(event = None, numb = -1):
         number = int(number) if x else numb
         if 1 <= number <= board_size and number not in numbers:
             numbers.append(number)
-            missing_numbers = find_missing_numbers(numbers)
-            update_gui(missing_numbers)
+            update_gui()
             error_message_var.set("")
         else:
             error_message_var.set(f"Please enter a valid number between 1 and {board_size}.")
@@ -54,8 +56,7 @@ def on_delete_entry(event = None, numb = -1):
         number = number = int(number) if x else numb
         if number in numbers:
             numbers.remove(number)
-            missing_numbers = find_missing_numbers(numbers)
-            update_gui(missing_numbers)
+            update_gui()
             number_entry.delete(0, tk.END) 
             error_message_var.set("") 
         else:
@@ -119,7 +120,6 @@ def check_if_bingo(privious_bingos):
         return True
     return False
 
-
 def create_numbers_canvas(canvas, numbers):
     for i, number in enumerate(numbers, start=1):
         row = (i - 1) // 5  
@@ -140,12 +140,47 @@ def update_numbers_sections(missing_numbers):
     taken_numbers_canvas.create_text(60, 20, text="Taken Numbers", font=("Arial", 12))
     create_numbers_canvas(taken_numbers_canvas, numbers)
 
+if os.path.exists(file_path):
+    file_path = 'bingo_game_state.txt'  # Specify the file name to look for in the program's directory
+    if os.path.exists(file_path):
+        with open(file_path, 'r') as file:
+            lines = file.readlines()
+            if len(lines) >= 3:
+                numbers = [int(line.strip()) for line in lines[0].strip().split(',')]
+                missing_numbers = [int(line.strip()) for line in lines[1].strip().split(',')]
+                bingo_board = [line.strip().split(',') for line in lines[2:]]
+else:
+    bingo_board = generate_bingo_board(board_size)
 
-def update_gui(missing_numbers=range(1, board_size+1)):
+def reset_game():
+    global numbers, missing_numbers, bingo_board
+    confirmation = messagebox.askyesno("Reset Confirmation", "Are you sure you want to reset the game?", default=messagebox.NO)
+    if confirmation:
+        numbers = []
+        missing_numbers = []
+        
+        bingo_board = generate_bingo_board(board_size)
+        update_gui()
+        
+        if os.path.exists(file_path):
+            os.remove(file_path)
+    
+
+# Function to save numbers, taken_numbers, and bingo_board to a file
+def save_game_state_to_file():
+    file_path = 'bingo_game_state.txt'  # Specify the file name to save in the program's directory
+    with open(file_path, 'w') as file:
+        file.write(','.join(map(str, numbers)) + '\n')
+        file.write(','.join(map(str, missing_numbers)) + '\n')
+        for row in bingo_board:
+            file.write(','.join(map(str, row)) + '\n')
+
+def update_gui():
+    find_missing_numbers(numbers)
     update_numbers_sections(missing_numbers)
+    save_game_state_to_file()
     update_bingo_board()
 
-bingo_board = generate_bingo_board(board_size)
 
 # Create the canvas for the bingo board
 drawCanv = tk.Canvas(root, width=300, height=300, bd=0)
@@ -168,10 +203,12 @@ submit_button.grid(row=0, column=2, padx=5)
 delete_button = tk.Button(button_frame, text="Delete", command=on_delete_entry)
 delete_button.grid(row=0, column=6, padx=5)
 
+reset_button = tk.Button(root, text="Reset Game", command=reset_game, font=("Helvetica", 20))
+reset_button.grid(row=12, column=7, padx=10, pady=10)
+
 error_message_var = tk.StringVar()
 error_message_label = tk.Label(root, textvariable=error_message_var, fg="red")
-error_message_label.grid(row=10, column=2, columnspan=5)
-
+error_message_label.grid(row=11, column=2, columnspan=5)
 
 number_entry.bind('<Return>', on_number_entry)
 
@@ -182,5 +219,6 @@ taken_numbers_canvas = tk.Canvas(root, width=150, height=400, bd=0)
 taken_numbers_canvas.grid(row=0, column=7, rowspan=12, padx=10, pady=1)
 
 update_gui()
+
 
 root.mainloop()

@@ -19,7 +19,7 @@ def find_missing_numbers(numbers):
     missing_numbers = [i for i in range(1, board_size + 1) if i not in numbers]
 
 
-def generate_bingo_board(max_num):
+def generate_bingo_board1(max_num):
     board = [[' ' for _ in range(5)] for _ in range(5)]
     max_num = int(max_num / 5)
     columns = [random.sample(range(1, int(max_num)*1+1), 5),
@@ -34,6 +34,11 @@ def generate_bingo_board(max_num):
             board[row_idx][col_idx] = str(number)
 
     return board
+
+def generate_bingo_board(max_num):
+    numbers = random.sample(range(1, max_num + 1), 25)
+    return [numbers[i:i+5] for i in range(0, 25, 5)]
+
 
 def on_number_entry(event = None, numb = -1):
     number = number_entry.get()
@@ -168,12 +173,13 @@ def reset_game():
 
 # Function to save numbers, taken_numbers, and bingo_board to a file
 def save_game_state_to_file():
-    file_path = 'bingo_game_state.txt'  # Specify the file name to save in the program's directory
-    with open(file_path, 'w') as file:
-        file.write(','.join(map(str, numbers)) + '\n')
-        file.write(','.join(map(str, missing_numbers)) + '\n')
-        for row in bingo_board:
-            file.write(','.join(map(str, row)) + '\n')
+    if numbers:
+        file_path = 'bingo_game_state.txt'  # Specify the file name to save in the program's directory
+        with open(file_path, 'w') as file:
+            file.write(','.join(map(str, numbers)) + '\n')
+            file.write(','.join(map(str, missing_numbers)) + '\n')
+            for row in bingo_board:
+                file.write(','.join(map(str, row)) + '\n')
 
 def update_gui():
     find_missing_numbers(numbers)
